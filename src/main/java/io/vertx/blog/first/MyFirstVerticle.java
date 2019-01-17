@@ -1,12 +1,11 @@
 package io.vertx.blog.first;
+
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
@@ -15,7 +14,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.StaticHandler;
-import org.apache.commons.lang.RandomStringUtils;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,8 +23,6 @@ public class MyFirstVerticle extends AbstractVerticle {
 
   public static final String COLLECTION = "whiskies";
   private MongoClient mongo;
-  private HttpServer http1;
-  //String a = RandomStringUtils.random(5);
 
   @Override
   public void start(Future<Void> fut) {
@@ -41,6 +38,7 @@ public class MyFirstVerticle extends AbstractVerticle {
   }
 
   private void startWebApp(Handler<AsyncResult<HttpServer>> next) {
+
     // Create a router object.
     Router router = Router.router(vertx);
     // Bind "/" to our hello message.
@@ -48,7 +46,7 @@ public class MyFirstVerticle extends AbstractVerticle {
       HttpServerResponse response = routingContext.response();
       response
           .putHeader("content-type", "text/html")
-          .end("<h1>Hello from my first Vert.x 3 application</h1>");
+          .end("<h1>Server is up and running!</h1>");
     });
 
     router.route("/assets/*").handler(StaticHandler.create("assets"));
@@ -99,8 +97,12 @@ public class MyFirstVerticle extends AbstractVerticle {
   }
 
 
+
+
   private void getOne(RoutingContext routingContext) {
     final String id = routingContext.request().getParam("origin");
+    //String k = routingContext.request().getParam("origin");
+
     //JsonObject json = routingContext.getBodyAsJson();
     if (id == null) {
       routingContext.response().setStatusCode(400).end();
@@ -112,18 +114,28 @@ public class MyFirstVerticle extends AbstractVerticle {
             return;
           }
           //console.log("");
-
           String url = ar.result().getString("name");
+          writeFile(url,id);
           //String url = "www.facebook.com";
 
           Whisky whisky = new Whisky(ar.result());
           routingContext.response()
-                  .setStatusCode(301)
+                  .setStatusCode(302)
                   .putHeader("Location", url).end();
+
+          mongo.updateCollection(COLLECTION, new JsonObject().put("origin", id),new JsonObject().put("$inc",new JsonObject().put("hits", 1)), res -> {
+            if(res.succeeded()) {
+              System.out.println("Name is " + res.result());
+            }else{
+              res.cause().printStackTrace();
+            }
+          });
+
         } else {
           routingContext.response().setStatusCode(404).end();
         }
       });
+
     }
 
   }
@@ -151,6 +163,24 @@ public class MyFirstVerticle extends AbstractVerticle {
             }
           });
     }
+  }
+
+
+  private Future<String> writeFile(String input,String wrt) {
+    Future<String> future = Future.future();
+    String file = wrt+".txt";
+    // Retrieve a FileSystem object from vertx instance and call the
+    // non-blocking writeFile method
+    vertx.fileSystem().writeFile(file, Buffer.buffer(input), handler -> {
+      if (handler.succeeded()) {
+        System.out.println("\n File written with " + input);
+        future.complete(file);
+      } else {
+        System.err.println("Error while writing in file: " + handler.cause().getMessage());
+      }
+    });
+
+    return future;
   }
 
   private void deleteOne(RoutingContext routingContext) {

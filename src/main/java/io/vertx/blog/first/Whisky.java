@@ -6,6 +6,7 @@ import org.apache.commons.lang.RandomStringUtils;
 public class Whisky {
 
   private String id;
+  private Integer hits = 0;
   private String name;
   private String origin = RandomStringUtils.randomAlphabetic(5);
 
@@ -34,7 +35,8 @@ public class Whisky {
   public JsonObject toJson() {
     JsonObject json = new JsonObject()
         .put("name", name)
-        .put("origin", origin);
+        .put("origin", origin)
+        .put("hits", hits);
     if (id != null && !id.isEmpty()) {
       json.put("_id", id);
     }

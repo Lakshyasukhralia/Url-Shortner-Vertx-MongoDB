@@ -1,0 +1,1 @@
+https://stackoverflow.com/questions/46423356/vertx-httpcllentrequest-redirection
